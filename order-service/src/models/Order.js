@@ -34,13 +34,12 @@ const OrderSchema = new mongoose.Schema({
 });
 
 // Tự động tạo mã đơn hàng trước khi lưu
-OrderSchema.pre("save", async function (next) {
+OrderSchema.pre("save", async function () {
   if (!this.orderCode) {
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
     const count = await mongoose.model("Order").countDocuments();
     this.orderCode = `ORD-${date}-${String(count + 1).padStart(4, "0")}`;
   }
-  next();
 });
 
 // Virtual: tính tổng số lượng items

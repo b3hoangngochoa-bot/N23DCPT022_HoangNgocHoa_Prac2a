@@ -65,7 +65,7 @@ services:
     env_file:
       - ./order-service/.env
     environment:
-      MONGODB_URI: process.env.MONGODB_URI
+      PRODUCT_SERVICE_URL: http://product-service:3001
     ports:
       - "3002:3002"
     depends_on:
