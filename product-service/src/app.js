@@ -26,6 +26,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 // Export Spec dưới dạng JSON
 app.get("/api-docs.json", (req, res) => res.json(swaggerSpec));
 
+// Redirect trang chủ về Swagger UI
+app.get("/", (req, res) => res.redirect("/api-docs"));
+
 // Health Check Endpoint
 app.get("/health", (req, res) => res.json({
   status: "ok",

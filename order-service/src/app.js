@@ -31,6 +31,9 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 app.get("/api-docs.json", (req, res) => res.json(swaggerSpec));
 
+// Redirect trang chủ về Swagger UI
+app.get("/", (req, res) => res.redirect("/api-docs"));
+
 // Health Check
 app.get("/health", (req, res) => res.json({
   status: "ok",
