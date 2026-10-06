@@ -1,0 +1,480 @@
+{
+  "info": {
+    "_postman_id": "b3e02928-872f-48d1-b552-8d9e2614b721",
+    "name": "Lab2 Microservices",
+    "description": "Postman Collection hoàn chỉnh cho dự án Microservices Shop (Lab 2a) bao gồm Auth Service, Product Service, Order Service và API Gateway.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gateway_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "base_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "order_url",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "auth_url",
+      "value": "http://localhost:3003",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "1. Đăng ký tài khoản (Register)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    console.log('Tự động lưu accessToken và refreshToken vào biến collection!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hoang Hoa\",\n  \"email\": \"hoanghoa2026@gmail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/register",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Đăng ký tài khoản mới. Mật khẩu được mã hóa bằng bcrypt."
+          }
+        },
+        {
+          "name": "2. Đăng nhập (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    console.log('Tự động lưu accessToken vào biến collection!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hoanghoa2026@gmail.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/login",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Đăng nhập và nhận accessToken (15 phút) cùng refreshToken (7 ngày)."
+          }
+        },
+        {
+          "name": "3. Lấy thông tin user hiện tại (Get Me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/me",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Lấy thông tin profile người dùng hiện tại (yêu cầu Bearer token)."
+          }
+        },
+        {
+          "name": "4. Cấp lại accessToken (Refresh Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.success && jsonData.data && jsonData.data.accessToken) {",
+                  "    pm.collectionVariables.set('token', jsonData.data.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/auth/refresh",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Cấp lại accessToken mới bằng refreshToken hợp lệ."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "1. Lấy danh sách sản phẩm (Phân trang, Caching)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/products?page=1&limit=5&sortBy=createdAt&order=desc",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "5" },
+                { "key": "sortBy", "value": "createdAt" },
+                { "key": "order", "value": "desc" }
+              ]
+            },
+            "description": "Lấy danh sách sản phẩm có phân trang. Có tích hợp Redis caching (trả về fromCache: true từ lần gọi thứ 2)."
+          }
+        },
+        {
+          "name": "2. Tìm kiếm và Lọc sản phẩm (Filter, Search)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/products?search=iPhone&minPrice=20000000&maxPrice=40000000&inStock=true",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products"],
+              "query": [
+                { "key": "search", "value": "iPhone" },
+                { "key": "minPrice", "value": "20000000" },
+                { "key": "maxPrice", "value": "40000000" },
+                { "key": "inStock", "value": "true" }
+              ]
+            },
+            "description": "Lọc theo tên (không phân biệt hoa thường), khoảng giá min/max và trạng thái còn hàng."
+          }
+        },
+        {
+          "name": "3. Chi tiết sản phẩm theo ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/products/1",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products", "1"]
+            },
+            "description": "Lấy thông tin chi tiết của sản phẩm theo ID."
+          }
+        },
+        {
+          "name": "4. Test Không tìm thấy sản phẩm (404 Not Found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/products/999",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products", "999"]
+            },
+            "description": "Test case kiểm tra mã lỗi 404 khi truy vấn ID không tồn tại."
+          }
+        },
+        {
+          "name": "5. Tạo sản phẩm mới (POST)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPad Pro M4 11 inch\",\n  \"price\": 28990000,\n  \"description\": \"Màn hình OLED Ultra Retina XDR, chip M4\",\n  \"stock\": 15,\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/products",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Tạo sản phẩm mới, tự động xóa cache Redis."
+          }
+        },
+        {
+          "name": "6. Test Lỗi Validation (422 Unprocessable Entity)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"price\": -500\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/products",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Test case kiểm tra trả về mảng chi tiết các lỗi validation (422)."
+          }
+        },
+        {
+          "name": "7. Cập nhật thông tin sản phẩm (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"iPhone 15 Pro Max 256GB\",\n  \"price\": 31990000,\n  \"description\": \"Titan tự nhiên nguyên seal\",\n  \"stock\": 40,\n  \"categoryId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/products/1",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products", "1"]
+            },
+            "description": "Cập nhật sản phẩm theo ID, tự động xóa cache Redis."
+          }
+        },
+        {
+          "name": "8. Upload ảnh sản phẩm lên Cloudinary",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/products/1/image",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products", "1", "image"]
+            },
+            "description": "Upload file ảnh sản phẩm lên Cloudinary và lưu URL vào database (Yêu cầu 3)."
+          }
+        },
+        {
+          "name": "9. Xóa mềm sản phẩm (DELETE - Soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/products/1",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "products", "1"]
+            },
+            "description": "Xóa mềm sản phẩm (cập nhật isActive = false)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "1. Tạo đơn hàng mới (POST)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": 3,\n  \"customerName\": \"Hoang Hoa\",\n  \"customerEmail\": \"hoanghoa2026@gmail.com\",\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"productName\": \"iPhone 15 Pro Max 256GB\",\n      \"price\": 31990000,\n      \"quantity\": 1\n    }\n  ],\n  \"shippingAddress\": {\n    \"street\": \"123 Đường 3/2\",\n    \"city\": \"TP. Hồ Chí Minh\",\n    \"district\": \"Quận 10\"\n  },\n  \"note\": \"Giao hàng giờ hành chính\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/orders",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Tạo đơn hàng mới (yêu cầu Bearer token). Tự sinh mã orderCode dạng ORD-YYYYMMDD-XXXX."
+          }
+        },
+        {
+          "name": "2. Lấy danh sách tất cả đơn hàng (GET)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/orders?page=1&limit=10",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Lấy danh sách tất cả đơn hàng (yêu cầu Bearer token)."
+          }
+        },
+        {
+          "name": "3. Lấy đơn hàng theo khách hàng (customerId)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/orders/customer/3",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "orders", "customer", "3"]
+            },
+            "description": "Lấy danh sách đơn hàng của khách hàng cụ thể theo customerId."
+          }
+        },
+        {
+          "name": "4. Lấy chi tiết đơn hàng (Theo ObjectId hoặc orderCode)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/api/orders/ORD-20261006-0004",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "orders", "ORD-20261006-0004"]
+            },
+            "description": "Lấy thông tin chi tiết của đơn hàng bằng ObjectId hoặc orderCode."
+          }
+        },
+        {
+          "name": "5. Cập nhật trạng thái đơn hàng (PATCH)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\"\n}"
+            },
+            "url": {
+              "raw": "{{gateway_url}}/api/orders/ORD-20261006-0004/status",
+              "host": ["{{gateway_url}}"],
+              "path": ["api", "orders", "ORD-20261006-0004", "status"]
+            },
+            "description": "Cập nhật trạng thái đơn hàng: pending, confirmed, shipping, delivered, cancelled."
+          }
+        }
+      ]
+    }
+  ]
+}
