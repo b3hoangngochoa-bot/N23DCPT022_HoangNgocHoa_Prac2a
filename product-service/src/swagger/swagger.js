@@ -10,9 +10,9 @@ const options = {
       contact: { name: "Dev Team", email: "dev@example.com" }
     },
     servers: [
-      { url: "http://localhost:3001", description: "Development" },
-      { url: "http://localhost:3000", description: "API Gateway" },
-      { url: "https://product-service.railway.app", description: "Production" }
+      { url: "/", description: "Current Server (Tự động theo domain hiện tại)" },
+      { url: "http://localhost:3001", description: "Development (Local: 3001)" },
+      { url: "http://localhost:3000", description: "API Gateway (Local: 3000)" }
     ],
     components: {
       schemas: {
