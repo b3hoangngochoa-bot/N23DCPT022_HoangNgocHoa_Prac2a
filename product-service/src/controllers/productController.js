@@ -1,7 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
+const { redis, clearProductsCache } = require("../config/redis");
+
 const prisma = new PrismaClient();
 
-// GET /api/products - Lấy danh sách có phân trang, lọc, sắp xếp
+// GET /api/products - Lấy danh sách có phân trang, lọc, sắp xếp (Cache 5 phút)
 const getProducts = async (req, res, next) => {
   try {
     const {
@@ -15,6 +17,21 @@ const getProducts = async (req, res, next) => {
       maxPrice,
       inStock
     } = req.query;
+
+    const cacheKey = `products:${JSON.stringify(req.query)}`;
+
+    // 1. Kiểm tra cache Redis
+    try {
+      const cachedData = await redis.get(cacheKey);
+      if (cachedData) {
+        return res.json({
+          ...JSON.parse(cachedData),
+          fromCache: true
+        });
+      }
+    } catch (cacheErr) {
+      console.warn("Redis get error:", cacheErr.message);
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -44,7 +61,7 @@ const getProducts = async (req, res, next) => {
       prisma.product.count({ where }),
     ]);
 
-    res.json({
+    const result = {
       success: true,
       data: products,
       pagination: {
@@ -53,6 +70,18 @@ const getProducts = async (req, res, next) => {
         limit: parseInt(limit),
         totalPages: Math.ceil(total / parseInt(limit))
       }
+    };
+
+    // 2. Lưu vào Redis trong 5 phút
+    try {
+      await redis.setex(cacheKey, 300, JSON.stringify(result));
+    } catch (cacheErr) {
+      console.warn("Redis set error:", cacheErr.message);
+    }
+
+    res.json({
+      ...result,
+      fromCache: false
     });
   } catch (error) {
     next(error);
@@ -81,6 +110,10 @@ const createProduct = async (req, res, next) => {
       data: { name, slug, price, description, stock, imageUrl, categoryId },
       include: { category: true }
     });
+
+    // Xóa cache khi thêm sản phẩm mới
+    await clearProductsCache();
+
     res.status(201).json({ success: true, data: product, message: "Tạo sản phẩm thành công" });
   } catch (error) { next(error); }
 };
@@ -93,6 +126,10 @@ const updateProduct = async (req, res, next) => {
       data: req.body,
       include: { category: true }
     });
+
+    // Xóa cache khi sửa sản phẩm
+    await clearProductsCache();
+
     res.json({ success: true, data: product, message: "Cập nhật thành công" });
   } catch (error) { next(error); }
 };
@@ -104,6 +141,10 @@ const deleteProduct = async (req, res, next) => {
       where: { id: parseInt(req.params.id) },
       data: { isActive: false }
     });
+
+    // Xóa cache khi xóa sản phẩm
+    await clearProductsCache();
+
     res.json({ success: true, message: "Đã ẩn sản phẩm thành công" });
   } catch (error) { next(error); }
 };
@@ -138,6 +179,9 @@ const uploadProductImage = async (req, res, next) => {
       data: { imageUrl },
       include: { category: true }
     });
+
+    // Xóa cache khi cập nhật ảnh sản phẩm
+    await clearProductsCache();
 
     res.json({
       success: true,

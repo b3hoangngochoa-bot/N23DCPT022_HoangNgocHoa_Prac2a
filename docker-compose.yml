@@ -41,14 +41,26 @@ services:
     networks:
       - microservices-net
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    ports:
+      - "6379:6379"
+    networks:
+      - microservices-net
+
   # --- APPLICATION SERVICES ---
   product-service:
     build: ./product-service
     container_name: product_service
     env_file:
       - ./product-service/.env
+    environment:
+      REDIS_URL: redis://redis:6379
     ports:
       - "3001:3001"
+    depends_on:
+      - redis
     networks:
       - microservices-net
 
