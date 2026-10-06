@@ -11,6 +11,7 @@ const options = {
     },
     servers: [
       { url: "http://localhost:3001", description: "Development" },
+      { url: "http://localhost:3000", description: "API Gateway" },
       { url: "https://product-service.railway.app", description: "Production" }
     ],
     components: {

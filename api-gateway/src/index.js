@@ -10,7 +10,7 @@ require("dotenv").config();
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.ALLOWED_ORIGINS?.split(",") || "*" }));
+app.use(cors());
 
 // Rate limiting: 100 request / 15 phút
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });

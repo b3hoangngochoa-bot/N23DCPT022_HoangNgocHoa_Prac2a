@@ -108,10 +108,52 @@ const deleteProduct = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// POST /api/products/:id/image
+const uploadProductImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng chọn file ảnh để tải lên (field name: 'image')"
+      });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy sản phẩm"
+      });
+    }
+
+    const imageUrl = req.file.path;
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: parseInt(id) },
+      data: { imageUrl },
+      include: { category: true }
+    });
+
+    res.json({
+      success: true,
+      message: "Tải ảnh sản phẩm lên Cloudinary thành công!",
+      data: updatedProduct
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProducts,
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  uploadProductImage
 };

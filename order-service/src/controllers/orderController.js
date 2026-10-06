@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Order = require("../models/Order");
 
 // Tạo đơn hàng mới
@@ -58,12 +59,72 @@ const getOrdersByCustomer = async (req, res, next) => {
   }
 };
 
+// Lấy danh sách tất cả đơn hàng
+const getAllOrders = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const filter = {};
+    if (status) filter.status = status;
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit)),
+      Order.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      data: orders,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Lấy chi tiết đơn hàng theo ID (hỗ trợ cả MongoDB _id và orderCode)
+const getOrderById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    let order = null;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      order = await Order.findById(id);
+    } else {
+      order = await Order.findOne({ orderCode: id });
+    }
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Cập nhật trạng thái đơn hàng
 const updateOrderStatus = async (req, res, next) => {
   try {
+    const { id } = req.params;
     const { status } = req.body;
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
+
+    let filter = {};
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      filter = { _id: id };
+    } else {
+      filter = { orderCode: id };
+    }
+
+    const order = await Order.findOneAndUpdate(
+      filter,
       { status },
       { new: true, runValidators: true }
     );
@@ -76,4 +137,10 @@ const updateOrderStatus = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrder, getOrdersByCustomer, updateOrderStatus };
+module.exports = {
+  createOrder,
+  getAllOrders,
+  getOrderById,
+  getOrdersByCustomer,
+  updateOrderStatus
+};

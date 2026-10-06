@@ -9,6 +9,10 @@ const errorHandler = (err, req, res, next) => {
   if (err.code === "P2025") {
     return res.status(404).json({ success: false, message: "Không tìm thấy bản ghi" });
   }
+  // Prisma foreign key constraint violation (Khóa ngoại không tồn tại)
+  if (err.code === "P2003") {
+    return res.status(400).json({ success: false, message: "Danh mục (categoryId) không tồn tại" });
+  }
 
   res.status(err.status || 500).json({
     success: false,

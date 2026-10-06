@@ -20,6 +20,17 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB Atlas successfully!"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
+// Swagger UI
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./swagger/swagger");
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  swaggerOptions: { persistAuthorization: true },
+  customSiteTitle: "Order Service API Docs"
+}));
+
+app.get("/api-docs.json", (req, res) => res.json(swaggerSpec));
+
 // Health Check
 app.get("/health", (req, res) => res.json({
   status: "ok",
